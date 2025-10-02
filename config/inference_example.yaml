@@ -34,8 +34,15 @@ config:
           - "an overwhelming series of wires and cables"
           - "A full-screen video game image shows a person standing under a stone archway in a forest."
           - "A close-up shot shows hands holding a purple mold with green, viscous material stretching between its spikes."
+          - "A rectangular art piece with a duck painted on two sides stands upright on a patterned upholstered surface."
+          - "Several people are gathered around a large, metallic, insect-like prop on a sandy ground outdoors."
+          - "An album cover illustration depicts large monsters playing musical instruments with a blue sky background."
+          - "Two stuffed toys with human-like faces and segmented bodies are standing side-by-side on a white surface."
+          - "A colorful building with green and red accents features geometric patterns and reflective windows under a cloudy sky."
+          - "An isometric cutaway illustration shows the interior of a multi-level vehicle with various rooms and icons."
 
         # Or use a prompt file:
+          # z
         # prompts: "./test_prompts.txt"
 
         # Image dimensions

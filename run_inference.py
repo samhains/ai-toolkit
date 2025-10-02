@@ -97,7 +97,7 @@ def main():
     height = gen_config.get('height', 1024)
     sample_steps = gen_config.get('sample_steps', 25)
     guidance_scale = gen_config.get('guidance_scale', 4.0)
-    seed = gen_config.get('seed', 42)
+    seed = gen_config.get('seed', -1)  # Default to -1 for random
     ext = gen_config.get('ext', 'png')
 
     for i, prompt in enumerate(prompts):
@@ -111,7 +111,7 @@ def main():
             num_inference_steps=sample_steps,
             guidance_scale=guidance_scale,
             negative_prompt=gen_config.get('neg', ''),
-            seed=seed if seed < 0 else seed + i,
+            seed=seed if seed >= 0 else -1,  # Use -1 for random seed each time
             output_folder=output_folder,
             output_ext=ext,
         )
