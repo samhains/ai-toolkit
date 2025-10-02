@@ -1,0 +1,121 @@
+---
+job: "extension"
+config:
+  name: "my_first_lora_v1"
+  process:
+    - type: "diffusion_trainer"
+      training_folder: "/home/excalibur/Code/ai-toolkit/output"
+      sqlite_db_path: "./aitk_db.db"
+      device: "cuda"
+      trigger_word: null
+      performance_log_every: 10
+      network:
+        type: "lora"
+        linear: 64
+        linear_alpha: 64
+        conv: 16
+        conv_alpha: 16
+        lokr_full_rank: true
+        lokr_factor: -1
+        network_kwargs:
+          ignore_if_contains: []
+      save:
+        dtype: "bf16"
+        save_every: 500
+        max_step_saves_to_keep: 4
+        save_format: "diffusers"
+        push_to_hub: false
+      datasets:
+        - folder_path: "/home/excalibur/Code/ai-toolkit/datasets/eagle"
+          mask_path: null
+          mask_min_value: 0.1
+          default_caption: ""
+          caption_ext: "txt"
+          caption_dropout_rate: 0.05
+          cache_latents_to_disk: true
+          is_reg: false
+          network_weight: 1
+          resolution:
+            - 512
+            - 768
+            - 1024
+          controls: []
+          shrink_video_to_frames: true
+          num_frames: 1
+          do_i2v: true
+          flip_x: false
+          flip_y: false
+      train:
+        batch_size: 8
+        bypass_guidance_embedding: false
+        steps: 6000
+        gradient_accumulation: 4
+        train_unet: true
+        train_text_encoder: false
+        gradient_checkpointing: true
+        noise_scheduler: "flowmatch"
+        optimizer: "adamw8bit"
+        timestep_type: "sigmoid"
+        content_or_style: "balanced"
+        optimizer_params:
+          weight_decay: 0.0001
+        unload_text_encoder: false
+        cache_text_embeddings: true
+        lr: 0.0002
+        ema_config:
+          use_ema: false
+          ema_decay: 0.99
+        skip_first_sample: false
+        force_first_sample: false
+        disable_sampling: false
+        dtype: "bf16"
+        diff_output_preservation: false
+        diff_output_preservation_multiplier: 1
+        diff_output_preservation_class: "person"
+        switch_boundary_every: 1
+        loss_type: "mse"
+      model:
+        name_or_path: "black-forest-labs/FLUX.1-dev"
+        quantize: true
+        qtype: "qfloat8"
+        quantize_te: true
+        qtype_te: "qfloat8"
+        arch: "flux"
+        low_vram: false
+        model_kwargs: {}
+      sample:
+        sampler: "flowmatch"
+        sample_every: 250
+        width: 1024
+        height: 1024
+        samples:
+          - prompt: "A watercolor painting shows a lone white egret standing in shallow water surrounded by tall reeds. The background features deep blue water with ripples, while golden-brown cattails frame the composition on both sides. Soft morning light illuminates the bird from the left, creating subtle highlights on its plumage against the darker water."
+          - prompt: "The sculpture consists of interconnected copper tubes forming an abstract humanoid figure. The tubes are weathered with green patina visible on curved sections. It stands on a circular concrete base in an outdoor setting. Shadows cast by the figure stretch to the right, indicating late afternoon lighting from the left side of the frame."
+          - prompt: "This digital illustration depicts a robotic character with purple and silver plating seated at a workbench. Various tools hang on a pegboard behind it, illuminated by a warm overhead lamp. The character's hands manipulate small mechanical components on the bench surface. The scene is framed by dark blue walls with rust-colored trim at the corners."
+          - prompt: "A close-up photograph captures the intricate pattern of tree bark with deep vertical fissures. Gray and brown tones dominate the textured surface, with occasional patches of pale green lichen clustered in the crevices. Natural outdoor lighting creates contrast between the raised bark ridges and the shadowed grooves running vertically through the frame."
+          - prompt: "The mixed media collage features torn magazine pages arranged in overlapping layers. Fragments of text in various fonts are visible among abstract geometric shapes in red, yellow, and blue. A photographic element showing part of a classical statue is partially visible in the upper right quadrant. The composition creates depth through the layering of translucent and opaque papers."
+          - prompt: "This architectural rendering shows a futuristic building with curved glass walls and white steel framework. The structure appears to float above a reflecting pool in the foreground. Behind it, a cityscape with conventional buildings creates contrast against the organic forms of the main structure. The sky is rendered in gradient tones from pink to deep purple, suggesting sunset conditions."
+          - prompt: "An oil painting portrays a coastal scene with three fishing boats pulled up on a sandy beach. The boats are painted in faded red and blue colors, with visible weathering on their hulls. In the background, white-capped waves break against dark rocks. The lighting suggests overcast conditions with diffused illumination across the entire scene."
+          - prompt: "The photograph shows an ornate ceiling with repeating geometric patterns formed by wooden beams. Gold leaf accents highlight the intersections of the beams, creating a grid of squares receding toward the center. Small circular medallions with floral motifs are positioned at each intersection point. Warm artificial lighting from below illuminates the decorative elements."
+          - prompt: "A digital 3D render presents a collection of abstract forms resembling smooth pebbles in pastel colors. The forms are scattered across a flat surface with a gradient background shifting from pale lavender to cream. Soft shadows beneath each form indicate lighting from directly above. The largest form, in mint green, occupies the center of the composition."
+          - prompt: "This ink drawing depicts a gnarled tree with twisted branches extending in multiple directions. Fine cross-hatching creates tonal variation in the bark texture and foliage masses. A small bird is perched on a lower branch on the left side. The background is minimal, with only faint horizontal lines suggesting a distant horizon."
+          - prompt: "The fabric pattern displays repeating motifs of stylized peacock feathers in teal and gold. Each feather element curves diagonally across the surface, with circular eye patterns featuring concentric rings of color. Small dots and linear details connect the larger feather forms. The pattern is photographed under even lighting that reveals the subtle texture of the woven material."
+          - prompt: "A still life painting shows a ceramic bowl filled with oranges on a draped cloth. The cloth is deep burgundy with visible folds creating shadow patterns. Behind the bowl, a dark green glass bottle catches light on its curved surface. The background is a neutral gray wall, with lighting coming from the upper left creating strong highlights on the fruit."
+          - prompt: "This photograph captures an industrial interior with exposed brick walls and large metal pipes running horizontally across the ceiling. Sunlight streams through tall windows on the right, creating dramatic diagonal shafts of light through airborne dust particles. Old wooden crates are stacked in the shadowed left corner of the space."
+          - prompt: "The illustration features a stylized map with hand-drawn mountains, forests, and winding rivers. Labels in decorative script identify various locations across the terrain. A compass rose in the bottom right corner includes ornate flourishes. The color palette consists of muted earth tones with accents of blue for water features and red for marked locations."
+          - prompt: "A macro photograph reveals the detailed structure of a butterfly wing with iridescent blue scales. The scales are arranged in overlapping rows, creating a shingle-like pattern. Black veins divide the wing into distinct sections. The shallow depth of field keeps the center area sharp while the edges blur gradually into soft focus."
+          - prompt: "This papercut artwork layers multiple sheets of colored paper to create a dimensional forest scene. Dark blue silhouettes of trees form the foreground, with progressively lighter layers of green and yellow creating depth behind them. A circular white moon shape is visible through gaps in the upper layers. Backlighting emphasizes the separation between each paper layer."
+          - prompt: "The ceramic vessel features a bulbous body with a narrow neck and flared rim. Cobalt blue glaze covers the upper portion, dripping irregularly down the sides to reveal the cream-colored clay body beneath. The piece sits on a white pedestal against a neutral background. Studio lighting from the left highlights the glossy surface texture and the glaze variation."
+          - prompt: "An aerial photograph displays a patchwork of agricultural fields in various shades of green and brown. Linear irrigation lines cut diagonally across rectangular plots. A narrow dirt road bisects the composition from top to bottom. Long shadows from trees along the road indicate late afternoon sun from the left side of the frame."
+          - prompt: "This charcoal drawing portrays a crumpled fabric study with deep shadows in the folds. The cloth appears to be hanging from a point outside the frame, creating cascading vertical creases. Highlights on the raised portions contrast with the dark recesses. The artist has used blending techniques to create smooth tonal transitions across the draped surface."
+          - prompt: "The vintage poster design features bold typography in orange and black arranged in a diagonal composition. A stylized sunburst pattern radiates from the center behind the text. At the bottom, a simplified illustration of a train in profile occupies a horizontal band. The overall aesthetic suggests mid-century modern graphic design with weathered texture suggesting age."
+        neg: ""
+        seed: 42
+        walk_seed: true
+        guidance_scale: 4
+        sample_steps: 25
+        num_frames: 1
+        fps: 1
+meta:
+  name: "[name]"
+  version: "1.0"

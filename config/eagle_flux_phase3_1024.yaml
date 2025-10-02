@@ -1,0 +1,89 @@
+---
+# PHASE 3: Final High-Resolution Model (1024px, ~12-15 hours)
+# Purpose: Create production-quality model with maximum detail preservation
+# Expected: ~3,350 iterations/epoch, 8000 steps = ~2.4 epochs
+
+job: extension
+config:
+  name: "eagle_flux_phase3_1024"
+  process:
+    - type: 'sd_trainer'
+      training_folder: "output"
+      performance_log_every: 100
+      device: cuda:0
+
+      # Uncomment and set your trigger word if you want one added to all captions
+      # trigger_word: "eagle_style"
+
+      network:
+        type: "lora"
+        linear: 32  # Keep rank 32 - good balance for production
+        linear_alpha: 32
+        transformer_only: true
+
+      save:
+        dtype: float16
+        save_every: 500
+        max_step_saves_to_keep: 6
+        push_to_hub: false
+        # Uncomment to push final model to Hugging Face
+        # hf_repo_id: "your-username/eagle-flux-lora"
+        # hf_private: true
+
+      datasets:
+        - folder_path: "./datasets/eagle"
+          caption_ext: "txt"
+          caption_dropout_rate: 0.05
+          shuffle_tokens: false
+          cache_latents_to_disk: true
+          resolution: 1024
+          buckets: true
+          bucket_tolerance: 64
+
+      train:
+        batch_size: 2  # Conservative for 1024px
+        steps: 8000  # More steps for final model
+        gradient_accumulation_steps: 2  # Effective batch size = 4
+        train_unet: true
+        train_text_encoder: false
+        gradient_checkpointing: true
+        noise_scheduler: "flowmatch"
+        optimizer: "adamw8bit"
+        lr: 8e-5
+
+        ema_config:
+          use_ema: true
+          ema_decay: 0.99
+
+        dtype: bf16
+
+      model:
+        name_or_path: "black-forest-labs/FLUX.1-dev"
+        is_flux: true
+        quantize: true
+
+      sample:
+        sampler: "flowmatch"
+        sample_every: 500
+        width: 1024
+        height: 1024
+        prompts:
+          - "a majestic bald eagle soaring over mountains at sunset, photorealistic, highly detailed"
+          - "an eagle perched on a branch, intricate feather detail, forest background, golden hour lighting"
+          - "golden eagle hunting over a snowy landscape, action shot, sharp focus"
+          - "close up portrait of an eagle's face, piercing eyes, dramatic side lighting, 4k quality"
+          - "eagle in flight, wings fully spread, blue sky, dynamic pose, professional wildlife photography"
+          - "eagle landing on water surface, catching a fish, dramatic splash, freeze frame"
+          - "juvenile eagle learning to fly, nest in background, soft natural lighting"
+          - "eagle silhouette against vibrant sunset sky, cinematic composition"
+        neg: ""
+        seed: 42
+        walk_seed: true
+        guidance_scale: 3.5
+        sample_steps: 28  # More steps for higher quality samples
+
+meta:
+  name: "[name]"
+  version: '1.0'
+  phase: 3
+  description: "Final production model at 1024px with 8k steps"

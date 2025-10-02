@@ -1,0 +1,69 @@
+---
+# Simple inference config - test checkpoints while training runs on another GPU
+job: "generate"
+config:
+  name: "checkpoint_inference"
+  process:
+    - type: "to_folder"
+      # Specify which GPU to use (e.g., "cuda:1" for second GPU)
+      device: "cuda:1"
+
+      # Data type for inference
+      dtype: "bf16"
+
+      # Where to save generated images
+      output_folder: "./output/inference_samples"
+
+      # Model configuration
+      model:
+        # Path to your checkpoint (can be HF model or local path)
+        name_or_path: "black-forest-labs/FLUX.1-dev"
+
+        # Testing LoRA checkpoint at step 7000
+        lora_path: "./output/eagle_images_2/eagle_images_2_000007000.safetensors"
+        lora_weight: 1.0
+
+        arch: "flux"
+        quantize: true
+        qtype: "qfloat8"
+        quantize_te: true
+        qtype_te: "qfloat8"
+        low_vram: false
+
+      # Generation settings
+      generate:
+        # Can be a list of prompts or path to text file (one prompt per line)
+        prompts:
+          - "a photo of a majestic eagle perched on a branch"
+          - "an eagle soaring through the sky at sunset"
+          - "close-up portrait of an eagle's face"
+
+        # Or use a prompt file:
+        # prompts: "./test_prompts.txt"
+
+        # Image dimensions
+        width: 1024
+        height: 1024
+
+        # Sampling settings
+        sampler: "flowmatch"
+        sample_steps: 25
+        guidance_scale: 4.0
+
+        # Seed for reproducibility (-1 for random)
+        seed: 42
+
+        # Negative prompt
+        neg: ""
+
+        # Output format
+        ext: "png"
+
+        # Add prompt to output filename
+        prompt_file: false
+
+        # Number of times to repeat the prompt list
+        num_repeats: 1
+
+        # Compile model for faster inference (first run will be slower)
+        compile: false

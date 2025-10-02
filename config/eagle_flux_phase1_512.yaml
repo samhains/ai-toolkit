@@ -1,0 +1,85 @@
+---
+# PHASE 1: Quick Validation (512px, ~2-3 hours)
+# Purpose: Fast iteration to validate dataset quality, captions, and find optimal hyperparameters
+# Expected: ~840 iterations/epoch, 5000 steps = ~6 epochs
+
+job: extension
+config:
+  name: "eagle_flux_phase1_512"
+  process:
+    - type: 'sd_trainer'
+      training_folder: "output"
+      performance_log_every: 100
+      device: cuda:0
+
+      # Uncomment and set your trigger word if you want one added to all captions
+      # trigger_word: "eagle_style"
+
+      network:
+        type: "lora"
+        linear: 16
+        linear_alpha: 16
+        transformer_only: true
+
+      save:
+        dtype: float16
+        save_every: 500
+        max_step_saves_to_keep: 5
+        push_to_hub: false
+
+      datasets:
+        - folder_path: "./datasets/eagle"
+          caption_ext: "txt"
+          caption_dropout_rate: 0.05
+          shuffle_tokens: false
+          cache_latents_to_disk: true
+          resolution: 512
+          # Enable buckets for aspect ratio flexibility
+          buckets: true
+          bucket_tolerance: 64
+
+      train:
+        batch_size: 8  # With 96GB VRAM, we can go large
+        steps: 5000
+        gradient_accumulation_steps: 1
+        train_unet: true
+        train_text_encoder: false
+        gradient_checkpointing: true
+        noise_scheduler: "flowmatch"
+        optimizer: "adamw8bit"
+        lr: 1e-4
+
+        # EMA smooths learning
+        ema_config:
+          use_ema: true
+          ema_decay: 0.99
+
+        dtype: bf16
+
+      model:
+        name_or_path: "black-forest-labs/FLUX.1-dev"
+        is_flux: true
+        quantize: true
+
+      sample:
+        sampler: "flowmatch"
+        sample_every: 500
+        width: 1024
+        height: 1024
+        prompts:
+          - "a majestic bald eagle soaring over mountains at sunset"
+          - "an eagle perched on a branch, detailed feathers, forest background"
+          - "golden eagle hunting over a snowy landscape"
+          - "close up portrait of an eagle's face, sharp eyes, dramatic lighting"
+          - "eagle in flight, wings spread, blue sky, photorealistic"
+        neg: ""
+        seed: 42
+        walk_seed: true
+        guidance_scale: 3.5
+        sample_steps: 20
+
+meta:
+  name: "[name]"
+  version: '1.0'
+  phase: 1
+  description: "Fast validation run at 512px with 6,700 eagle images"
