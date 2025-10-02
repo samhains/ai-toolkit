@@ -9,7 +9,7 @@ config:
       device: "cuda:1"
 
       # Data type for inference
-      dtype: "bf16"
+      dtype: "fp16"
 
       # Where to save generated images
       output_folder: "./output/inference_samples"
@@ -25,18 +25,15 @@ config:
 
         arch: "flux"
         quantize: true
-        qtype: "qfloat8"
-        quantize_te: true
-        qtype_te: "qfloat8"
         low_vram: false
 
       # Generation settings
       generate:
         # Can be a list of prompts or path to text file (one prompt per line)
         prompts:
-          - "a photo of a majestic eagle perched on a branch"
-          - "an eagle soaring through the sky at sunset"
-          - "close-up portrait of an eagle's face"
+          - "an overwhelming series of wires and cables"
+          - "A full-screen video game image shows a person standing under a stone archway in a forest."
+          - "A close-up shot shows hands holding a purple mold with green, viscous material stretching between its spikes."
 
         # Or use a prompt file:
         # prompts: "./test_prompts.txt"
