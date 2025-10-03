@@ -41,11 +41,21 @@ def main():
     # Parse configuration
     device = process_config.get('device', 'cuda:0')
     dtype = get_torch_dtype(process_config.get('dtype', 'float16'))
-    output_folder = process_config['output_folder']
+    base_output_folder = process_config['output_folder']
     model_config = ModelConfig(**process_config['model'])
     gen_config = process_config['generate']
 
-    # Create output folder
+    # Get model identifier from config
+    model_name = model_config.name_or_path
+    if '/' in model_name:
+        model_name = model_name.split('/')[-1]
+    model_name = model_name.replace(' ', '_').replace(':', '_')
+
+    # Get sample steps
+    sample_steps = gen_config.get('sample_steps', 25)
+
+    # Create output folder with model name and steps
+    output_folder = os.path.join(base_output_folder, model_name, f'steps_{sample_steps}')
     os.makedirs(output_folder, exist_ok=True)
 
     # Get model class and initialize
@@ -95,7 +105,6 @@ def main():
     # Generate images
     width = gen_config.get('width', 1024)
     height = gen_config.get('height', 1024)
-    sample_steps = gen_config.get('sample_steps', 25)
     guidance_scale = gen_config.get('guidance_scale', 4.0)
     seed = gen_config.get('seed', -1)  # Default to -1 for random
     ext = gen_config.get('ext', 'png')
