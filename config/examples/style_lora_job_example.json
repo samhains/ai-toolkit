@@ -1,0 +1,21 @@
+{
+  "project_name": "client_style_v1",
+  "model": "flux_dev",
+  "trigger_word": "crnstyle",
+  "image_urls": [
+    "https://example.com/image1.jpg",
+    "https://example.com/image2.png",
+    "https://example.com/image3.jpg"
+  ],
+  "options": {
+    "steps": 2000,
+    "lora_rank": 16,
+    "learning_rate": 1e-4,
+    "caption_dropout_rate": 0.05,
+    "sample_prompts": [
+      "a portrait of a woman sitting in a cafe, crnstyle",
+      "a landscape with mountains and a lake, crnstyle",
+      "a cat sitting on a windowsill in warm light, crnstyle"
+    ]
+  }
+}
