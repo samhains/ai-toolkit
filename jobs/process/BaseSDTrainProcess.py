@@ -2403,7 +2403,7 @@ class BaseSDTrainProcess(BaseTrainProcess):
             self.logger.commit(step=self.step_num)
         print_acc("")
         if self.accelerator.is_main_process:
-            self.save()
+            self.save(self.step_num)
             self.logger.finish()
         self.accelerator.end_training()
 
@@ -2415,6 +2415,21 @@ class BaseSDTrainProcess(BaseTrainProcess):
                 self.push_to_hub(
                     repo_id=self.save_config.hf_repo_id,
                     private=self.save_config.hf_private
+                )
+
+            # push to Supabase shelf (LoRA only)
+            if self.save_config.push_to_supabase and not self.is_fine_tuning:
+                from toolkit.supabase_upload import upload_lora
+                lora_name = self.job.name
+                if self.named_lora:
+                    lora_name += '_LoRA'
+                step_str = str(self.step_num).zfill(9)
+                lora_filename = f"{lora_name}_{step_str}.safetensors"
+                lora_path = os.path.join(self.save_root, lora_filename)
+                upload_lora(
+                    safetensors_path=lora_path,
+                    job_name=self.job.name,
+                    model_arch=self.model_config.arch,
                 )
         del (
             self.sd,
