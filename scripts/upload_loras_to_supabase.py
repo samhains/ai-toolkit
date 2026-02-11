@@ -3,7 +3,7 @@
 Upload LoRA checkpoints from output/ to Supabase shelf.
 
 Usage:
-    python scripts/upload_loras_to_supabase.py                    # upload all final loras
+    python scripts/upload_loras_to_supabase.py                    # upload all runs
     python scripts/upload_loras_to_supabase.py style_mlhbhtp9     # upload specific run
 """
 
@@ -13,84 +13,40 @@ import yaml
 from pathlib import Path
 from dotenv import load_dotenv
 
-# Load env from project root
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 load_dotenv(PROJECT_ROOT / ".env")
 
 sys.path.insert(0, str(PROJECT_ROOT))
-from toolkit.supabase_upload import push_to_supabase
+from toolkit.supabase_upload import upload_lora, list_existing
 
 
-def get_model_arch(run_dir: Path) -> str:
-    """Extract model arch from the saved config.yaml in the run directory."""
+def parse_config(run_dir: Path) -> dict:
     config_path = run_dir / "config.yaml"
     if not config_path.exists():
-        return "unknown"
+        return {}
     try:
         with open(config_path) as f:
             config = yaml.safe_load(f)
         processes = config.get("config", {}).get("process", [])
         if processes:
-            model = processes[0].get("model", {})
-            arch = model.get("arch", None)
-            if arch:
-                return arch
-            # Fallback: derive from name_or_path
-            name = model.get("name_or_path", "")
-            if "flux" in name.lower():
-                return "flux"
-            if "wan" in name.lower():
-                return "wan"
-    except Exception as e:
-        print(f"  Warning: could not parse config: {e}")
-    return "unknown"
-
-
-def get_trigger_word(run_dir: Path) -> str:
-    """Extract trigger word from config."""
-    config_path = run_dir / "config.yaml"
-    if not config_path.exists():
-        return None
-    try:
-        with open(config_path) as f:
-            config = yaml.safe_load(f)
-        processes = config.get("config", {}).get("process", [])
-        if processes:
-            return processes[0].get("trigger_word", None)
+            p = processes[0]
+            return {
+                "arch": p.get("model", {}).get("arch", "unknown"),
+                "total_steps": p.get("train", {}).get("steps", None),
+            }
     except Exception:
         pass
-    return None
+    return {"arch": "unknown", "total_steps": None}
 
 
-def get_train_steps(run_dir: Path) -> int:
-    """Extract total training steps from config."""
-    config_path = run_dir / "config.yaml"
-    if not config_path.exists():
-        return None
-    try:
-        with open(config_path) as f:
-            config = yaml.safe_load(f)
-        processes = config.get("config", {}).get("process", [])
-        if processes:
-            return processes[0].get("train", {}).get("steps", None)
-    except Exception:
-        pass
-    return None
-
-
-def discover_loras(output_dir: Path, filter_name: str = None):
-    """Find final (non-step) safetensors files in output subdirectories."""
-    loras = []
-    for run_dir in sorted(output_dir.iterdir()):
-        if not run_dir.is_dir():
-            continue
-        name = run_dir.name
-        if filter_name and name != filter_name:
-            continue
-        final = run_dir / f"{name}.safetensors"
-        if final.exists():
-            loras.append((name, run_dir, final))
-    return loras
+def normalize_filename(cp: Path, run_name: str, total_steps: int) -> str:
+    """Ensure every file has steps in the name: {run_name}_{steps_9digits}.safetensors"""
+    name = cp.stem  # e.g. style_mlhbhtp9 or style_mlhbhtp9_000000600
+    if name == run_name:
+        # Final checkpoint with no step — add total_steps
+        steps = total_steps or 0
+        return f"{run_name}_{str(steps).zfill(9)}.safetensors"
+    return cp.name
 
 
 def main():
@@ -101,67 +57,37 @@ def main():
 
     filter_name = sys.argv[1] if len(sys.argv) > 1 else None
 
-    loras = discover_loras(output_dir, filter_name)
-    if not loras:
-        target = filter_name or "any"
-        print(f"No final lora checkpoints found for: {target}")
-        return
+    for run_dir in sorted(output_dir.iterdir()):
+        if not run_dir.is_dir():
+            continue
+        name = run_dir.name
+        if filter_name and name != filter_name:
+            continue
 
-    print(f"Found {len(loras)} lora(s) to upload:\n")
-    for name, run_dir, final in loras:
-        size_mb = final.stat().st_size / 1024 / 1024
-        arch = get_model_arch(run_dir)
-        trigger = get_trigger_word(run_dir)
-        steps = get_train_steps(run_dir)
-        print(f"  {name}")
-        print(f"    arch: {arch}  trigger: {trigger}  steps: {steps}  size: {size_mb:.1f} MB")
-        print(f"    -> loras/{arch}/{name}/{name}.safetensors")
-        print()
+        checkpoints = sorted(run_dir.glob(f"{name}*.safetensors"))
+        if not checkpoints:
+            continue
 
-    for name, run_dir, final in loras:
-        arch = get_model_arch(run_dir)
-        trigger = get_trigger_word(run_dir)
-        steps = get_train_steps(run_dir)
+        cfg = parse_config(run_dir)
+        arch = cfg.get("arch", "unknown")
+        total_steps = cfg.get("total_steps")
 
-        # Build metadata from config (no training meta OrderedDict available offline)
-        from collections import OrderedDict
-        import datetime
-        meta = OrderedDict({
-            "job_name": name,
-            "model_arch": arch,
-            "trigger_word": trigger,
-            "steps": steps,
-            "file_size_mb": round(final.stat().st_size / 1024 / 1024, 1),
-            "uploaded_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
-        })
+        # Build list of (local_path, normalized_upload_name)
+        uploads = []
+        existing = list_existing(name, arch)
+        for cp in checkpoints:
+            upload_name = normalize_filename(cp, name, total_steps)
+            if upload_name not in existing:
+                uploads.append((cp, upload_name))
 
-        url = push_to_supabase(
-            safetensors_path=str(final),
-            job_name=name,
-            model_arch=arch,
-            metadata=None,  # use minimal metadata, we build our own
-            bucket="ai-creative-studio-shelf",
-        )
+        if not uploads:
+            print(f"  {name}: all {len(checkpoints)} checkpoints already uploaded, skipping")
+            continue
 
-        if url:
-            # Also upload richer metadata manually
-            import json
-            from supabase import create_client
-            client = create_client(
-                os.environ["SUPABASE_URL"],
-                os.environ["SUPABASE_KEY"],
-            )
-            storage = client.storage.from_("ai-creative-studio-shelf")
-            meta_path = f"loras/{arch}/{name}/metadata.json"
-            meta_json = json.dumps(dict(meta), indent=2)
-            try:
-                storage.upload(
-                    path=meta_path,
-                    file=meta_json.encode("utf-8"),
-                    file_options={"content-type": "application/json", "upsert": "true"},
-                )
-            except Exception:
-                pass  # already uploaded by push_to_supabase
+        print(f"\n{name} ({arch}) — {len(uploads)} new / {len(checkpoints)} total")
+
+        for cp, upload_name in uploads:
+            upload_lora(str(cp), name, arch, upload_name=upload_name)
 
     print("\nDone.")
 
