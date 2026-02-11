@@ -665,6 +665,15 @@ class BaseSDTrainProcess(BaseTrainProcess):
         
         print_acc(f"Saved checkpoint to {file_path}")
 
+        # push to Supabase shelf (LoRA only, intermediate + final)
+        if self.save_config.push_to_supabase and not self.is_fine_tuning and self.network is not None:
+            from toolkit.supabase_upload import upload_lora
+            upload_lora(
+                safetensors_path=file_path,
+                job_name=self.job.name,
+                model_arch=self.model_config.arch,
+            )
+
         # save optimizer
         if self.optimizer is not None:
             try:
@@ -2380,20 +2389,6 @@ class BaseSDTrainProcess(BaseTrainProcess):
                     private=self.save_config.hf_private
                 )
 
-            # push to Supabase shelf (LoRA only)
-            if self.save_config.push_to_supabase and not self.is_fine_tuning:
-                from toolkit.supabase_upload import upload_lora
-                lora_name = self.job.name
-                if self.named_lora:
-                    lora_name += '_LoRA'
-                step_str = str(self.step_num).zfill(9)
-                lora_filename = f"{lora_name}_{step_str}.safetensors"
-                lora_path = os.path.join(self.save_root, lora_filename)
-                upload_lora(
-                    safetensors_path=lora_path,
-                    job_name=self.job.name,
-                    model_arch=self.model_config.arch,
-                )
         del (
             self.sd,
             unet,
