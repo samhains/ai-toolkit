@@ -13,10 +13,12 @@ Environment variables:
 """
 
 import os
+import subprocess
 import traceback
 from typing import Optional
 
 SHELF_BUCKET = "ai-creative-studio-shelf"
+CURL_THRESHOLD_MB = 200
 
 _client = None
 
@@ -33,6 +35,31 @@ def _get_client():
     return _client
 
 
+def _upload_via_curl(
+    safetensors_path: str,
+    storage_path: str,
+    bucket: str,
+) -> bool:
+    """Upload large files via curl to avoid supabase-py timeout issues."""
+    url = os.environ.get("SUPABASE_URL")
+    key = os.environ.get("SUPABASE_KEY")
+    endpoint = f"{url}/storage/v1/object/{bucket}/{storage_path}"
+    result = subprocess.run(
+        [
+            "curl", "-s", "-f",
+            "-X", "POST",
+            "-H", f"Authorization: Bearer {key}",
+            "-H", "Content-Type: application/octet-stream",
+            "-H", "x-upsert: true",
+            "--data-binary", f"@{safetensors_path}",
+            endpoint,
+        ],
+        capture_output=True,
+        timeout=600,
+    )
+    return result.returncode == 0
+
+
 def upload_lora(
     safetensors_path: str,
     job_name: str,
@@ -43,14 +70,17 @@ def upload_lora(
     """
     Upload a single .safetensors file to Supabase Storage.
 
+    Uses curl for files over 200 MB to avoid supabase-py timeout issues.
+
     Args:
         upload_name: Override the filename in storage (e.g. to normalize step naming).
 
     Returns public URL on success, None on failure. Never raises.
     """
     try:
-        client = _get_client()
-        if client is None:
+        url = os.environ.get("SUPABASE_URL")
+        key = os.environ.get("SUPABASE_KEY")
+        if not url or not key:
             print("[supabase] SUPABASE_URL or SUPABASE_KEY not set, skipping")
             return None
 
@@ -58,23 +88,31 @@ def upload_lora(
             print(f"[supabase] File not found: {safetensors_path}")
             return None
 
-        storage = client.storage.from_(bucket)
         filename = upload_name or os.path.basename(safetensors_path)
         file_size_mb = os.path.getsize(safetensors_path) / 1024 / 1024
         storage_path = f"loras/{model_arch}/{job_name}/{filename}"
 
         print(f"[supabase] Uploading {filename} ({file_size_mb:.1f} MB)...")
 
-        with open(safetensors_path, "rb") as f:
-            file_data = f.read()
+        if file_size_mb > CURL_THRESHOLD_MB:
+            success = _upload_via_curl(safetensors_path, storage_path, bucket)
+            if not success:
+                print(f"[supabase] curl upload failed for {filename}")
+                return None
+        else:
+            client = _get_client()
+            if client is None:
+                return None
+            storage = client.storage.from_(bucket)
+            with open(safetensors_path, "rb") as f:
+                file_data = f.read()
+            storage.upload(
+                path=storage_path,
+                file=file_data,
+                file_options={"content-type": "application/octet-stream", "upsert": "true"},
+            )
 
-        storage.upload(
-            path=storage_path,
-            file=file_data,
-            file_options={"content-type": "application/octet-stream", "upsert": "true"},
-        )
-
-        public_url = storage.get_public_url(storage_path)
+        public_url = f"{url}/storage/v1/object/public/{bucket}/{storage_path}"
         print(f"[supabase] Done: {storage_path}")
         return public_url
 

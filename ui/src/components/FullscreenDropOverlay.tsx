@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { FaUpload } from 'react-icons/fa';
 import { apiClient } from '@/utils/api';
+import { getFilesFromEvent } from '@/utils/folderDrop';
 
 type AcceptMap = {
   [mime: string]: string[];
@@ -130,6 +131,7 @@ export default function FullscreenDropOverlay({
     noKeyboard: true,
     // Prevent "folder opens" by browser if someone drags outside the overlay mid-drop:
     preventDropOnDocument: true,
+    getFilesFromEvent,
   });
 
   return (
@@ -158,7 +160,7 @@ export default function FullscreenDropOverlay({
             <FaUpload className="size-10 opacity-80" />
             {!isUploading ? (
               <>
-                <p className="text-lg font-semibold">Drop files to upload</p>
+                <p className="text-lg font-semibold">Drop files or folders to upload</p>
                 <p className="text-sm opacity-80">
                   Destination:&nbsp;<span className="font-mono">{datasetName || 'unknown'}</span>
                 </p>

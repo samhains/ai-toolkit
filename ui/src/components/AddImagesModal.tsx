@@ -5,6 +5,7 @@ import { FaUpload } from 'react-icons/fa';
 import { useCallback, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { apiClient } from '@/utils/api';
+import { getFilesFromEvent } from '@/utils/folderDrop';
 
 export interface AddImagesModalState {
   datasetName: string;
@@ -81,6 +82,7 @@ export default function AddImagesModal() {
       'text/*': ['.txt'],
     },
     multiple: true,
+    getFilesFromEvent,
   });
 
   return (
@@ -110,7 +112,7 @@ export default function AddImagesModal() {
                     <input {...getInputProps()} />
                     <FaUpload className="size-8 mb-3 text-gray-400" />
                     <p className="text-sm text-gray-200 text-center">
-                      {isDragActive ? 'Drop the files here...' : 'Drag & drop files here, or click to select files'}
+                      {isDragActive ? 'Drop files or folders here...' : 'Drag & drop files or folders here, or click to select'}
                     </p>
                   </div>
                   {isUploading && (

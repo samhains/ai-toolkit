@@ -643,8 +643,7 @@ class StableDiffusion:
                 transformer_path,
                 subfolder=subfolder,
                 torch_dtype=dtype,
-                # low_cpu_mem_usage=False,
-                # device_map=None
+                low_cpu_mem_usage=False,
             )
             # hack in model gpu splitter
             if self.model_config.split_model_over_gpus:
