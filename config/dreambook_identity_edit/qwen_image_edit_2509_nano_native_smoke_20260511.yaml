@@ -1,0 +1,76 @@
+---
+job: extension
+config:
+  name: dreambook_qwen_image_edit_2509_nano_native_smoke_20260511
+  process:
+    - type: diffusion_trainer
+      training_folder: output
+      device: cuda:0
+      network:
+        type: lora
+        linear: 16
+        linear_alpha: 16
+      save:
+        dtype: float16
+        save_every: 100
+        max_step_saves_to_keep: 4
+        push_to_hub: false
+      datasets:
+        - folder_path: /home/excalibur/media/dreambook-assets/mine-dreams-paperback-visual-v2-20260504/identity-method-dev/training-exports/nano-native-qwen-edit-20260511/targets
+          control_path:
+            - /home/excalibur/media/dreambook-assets/mine-dreams-paperback-visual-v2-20260504/identity-method-dev/training-exports/nano-native-qwen-edit-20260511/controls/source
+            - /home/excalibur/media/dreambook-assets/mine-dreams-paperback-visual-v2-20260504/identity-method-dev/training-exports/nano-native-qwen-edit-20260511/controls/mask
+            - /home/excalibur/media/dreambook-assets/mine-dreams-paperback-visual-v2-20260504/identity-method-dev/training-exports/nano-native-qwen-edit-20260511/controls/identity
+          caption_ext: txt
+          caption_dropout_rate: 0.0
+          resolution: [512, 768, 1024]
+      train:
+        batch_size: 1
+        cache_text_embeddings: true
+        steps: 300
+        gradient_accumulation: 1
+        timestep_type: weighted
+        train_unet: true
+        train_text_encoder: false
+        gradient_checkpointing: true
+        noise_scheduler: flowmatch
+        optimizer: adamw8bit
+        lr: 5.0e-5
+        dtype: bf16
+      model:
+        name_or_path: Qwen/Qwen-Image-Edit-2509
+        arch: qwen_image_edit_plus
+        quantize: true
+        qtype: uint3|ostris/accuracy_recovery_adapters/qwen_image_edit_2509_torchao_uint3.safetensors
+        quantize_te: true
+        qtype_te: qfloat8
+        low_vram: true
+      sample:
+        sampler: flowmatch
+        sample_every: 100
+        width: 832
+        height: 1216
+        samples:
+          - prompt: Edit Image1 using Image2 as the exact mask and Image3 as the identity reference. Replace the masked full figure with Sam Hains while preserving the Dreambook paperback source composition and unmasked pixels.
+            ctrl_img_1: /home/excalibur/media/dreambook-assets/mine-dreams-paperback-visual-v2-20260504/identity-method-dev/training-exports/nano-native-qwen-edit-20260511/controls/source/dream-0010-scene-03-mask3-sam-hains-full-body.png
+            ctrl_img_2: /home/excalibur/media/dreambook-assets/mine-dreams-paperback-visual-v2-20260504/identity-method-dev/training-exports/nano-native-qwen-edit-20260511/controls/mask/dream-0010-scene-03-mask3-sam-hains-full-body.png
+            ctrl_img_3: /home/excalibur/media/dreambook-assets/mine-dreams-paperback-visual-v2-20260504/identity-method-dev/training-exports/nano-native-qwen-edit-20260511/controls/identity/dream-0010-scene-03-mask3-sam-hains-full-body.png
+          - prompt: Edit Image1 using Image2 as the exact mask and Image3 as the identity reference. Replace the masked face and head with Sam Hains while preserving the Dreambook paperback source composition and unmasked pixels.
+            ctrl_img_1: /home/excalibur/media/dreambook-assets/mine-dreams-paperback-visual-v2-20260504/identity-method-dev/training-exports/nano-native-qwen-edit-20260511/controls/source/dream-0010-scene-03-mask7-sam-hains-face.png
+            ctrl_img_2: /home/excalibur/media/dreambook-assets/mine-dreams-paperback-visual-v2-20260504/identity-method-dev/training-exports/nano-native-qwen-edit-20260511/controls/mask/dream-0010-scene-03-mask7-sam-hains-face.png
+            ctrl_img_3: /home/excalibur/media/dreambook-assets/mine-dreams-paperback-visual-v2-20260504/identity-method-dev/training-exports/nano-native-qwen-edit-20260511/controls/identity/dream-0010-scene-03-mask7-sam-hains-face.png
+          - prompt: Edit Image1 using Image2 as the exact mask and Image3 as the identity reference. Replace the masked full figure with Harry while preserving the Dreambook paperback source composition and unmasked pixels.
+            ctrl_img_1: /home/excalibur/media/dreambook-assets/mine-dreams-paperback-visual-v2-20260504/identity-method-dev/training-exports/nano-native-qwen-edit-20260511/controls/source/dream-0052-scene-01-mask159-harry-full-body.png
+            ctrl_img_2: /home/excalibur/media/dreambook-assets/mine-dreams-paperback-visual-v2-20260504/identity-method-dev/training-exports/nano-native-qwen-edit-20260511/controls/mask/dream-0052-scene-01-mask159-harry-full-body.png
+            ctrl_img_3: /home/excalibur/media/dreambook-assets/mine-dreams-paperback-visual-v2-20260504/identity-method-dev/training-exports/nano-native-qwen-edit-20260511/controls/identity/dream-0052-scene-01-mask159-harry-full-body.png
+        neg: ""
+        seed: 42
+        walk_seed: true
+        guidance_scale: 3
+        sample_steps: 20
+meta:
+  name: dreambook_qwen_image_edit_2509_nano_native_smoke_20260511
+  version: qwen-image-edit-2509-nano-native-smoke-20260511
+  project: dreambook
+  source_export: /home/excalibur/media/dreambook-assets/mine-dreams-paperback-visual-v2-20260504/identity-method-dev/training-exports/nano-native-qwen-edit-20260511
+  notes: "Tiny 9-row teacher/comparator smoke config from Nano Native composites. Do not treat as production training data until each target is visually curated."
