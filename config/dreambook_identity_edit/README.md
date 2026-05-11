@@ -13,11 +13,16 @@ Preflight:
 
 ```bash
 python3 config/dreambook_identity_edit/validate_smoke_readiness.py
+python3 config/dreambook_identity_edit/validate_smoke_readiness.py --check-remote
+python3 config/dreambook_identity_edit/validate_smoke_readiness.py --check-remote --allow-download
 ```
 
 This checks the dataset/control layout, sample control files, and whether the
 configured model/adapters are already available locally. It does not import
-torch, touch a GPU, start training, or download models.
+torch, touch a GPU, start training, or download models. `--check-remote` queries
+Hugging Face for missing repo/file availability and size; `--allow-download`
+turns missing local model files into warnings so operators can confirm that a
+run is allowed to fetch them.
 
 Purpose:
 
@@ -54,5 +59,9 @@ Nano-native-plus-Pabrix workflow.
 - The smoke is **not locally ready** because `Qwen/Qwen-Image-Edit-2509` and
   `ostris/accuracy_recovery_adapters` were not found in the local Hugging Face,
   storage, or ComfyUI model caches.
+- Remote preflight found both repos available and not gated/private:
+  `Qwen/Qwen-Image-Edit-2509` is about `53.8 GB`; the
+  `ostris/accuracy_recovery_adapters` repo is about `3.3 GB`, with the needed
+  `qwen_image_edit_2509_torchao_uint3.safetensors` file about `282.4 MB`.
 - The next gate is an explicit model/adaptor fetch or a decision to test a
   different local edit architecture that is already present.
