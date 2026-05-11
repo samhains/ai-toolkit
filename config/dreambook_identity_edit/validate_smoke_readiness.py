@@ -33,6 +33,15 @@ COMMON_MODEL_ROOTS = [
 ]
 
 
+def format_bytes(size: int) -> str:
+    value = float(size)
+    for unit in ("B", "KB", "MB", "GB", "TB"):
+        if value < 1024 or unit == "TB":
+            return f"{value:.1f} {unit}"
+        value /= 1024
+    return f"{size} B"
+
+
 def repo_cache_name(repo_id: str) -> str:
     return f"models--{repo_id.replace('/', '--')}"
 
@@ -70,6 +79,33 @@ def warn_line(label: str, detail: str = "") -> None:
     print(f"WARN {label}{suffix}")
 
 
+def remote_repo_summary(repo_id: str, *, file_name: str = "") -> tuple[bool, str]:
+    try:
+        from huggingface_hub import HfApi
+    except ImportError as exc:
+        return False, f"huggingface_hub unavailable: {exc}"
+
+    try:
+        info = HfApi().model_info(repo_id, files_metadata=True)
+    except Exception as exc:  # pragma: no cover - operator-facing network path
+        return False, f"{repo_id}: {type(exc).__name__}: {exc}"
+
+    siblings = list(info.siblings or [])
+    total_size = sum(int(getattr(sibling, "size", 0) or 0) for sibling in siblings)
+    gated = getattr(info, "gated", None)
+    detail = (
+        f"{repo_id} sha={getattr(info, 'sha', '')} private={getattr(info, 'private', None)} "
+        f"gated={gated} files={len(siblings)} total={format_bytes(total_size)}"
+    )
+    if file_name:
+        match = next((sibling for sibling in siblings if sibling.rfilename == file_name), None)
+        if match is None:
+            return False, f"{detail}; missing file {file_name}"
+        size = int(getattr(match, "size", 0) or 0)
+        detail = f"{detail}; file={file_name} size={format_bytes(size)}"
+    return True, detail
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -83,6 +119,11 @@ def main() -> int:
         "--allow-download",
         action="store_true",
         help="Do not fail if the model/adapters are absent from local cache",
+    )
+    parser.add_argument(
+        "--check-remote",
+        action="store_true",
+        help="When local model files are missing, query Hugging Face for repo/file availability and size",
     )
     args = parser.parse_args()
 
@@ -176,6 +217,14 @@ def main() -> int:
         model_hits = find_repo_cache(name_or_path)
         if model_hits:
             status_line(True, "model available locally", ", ".join(str(path) for path in model_hits))
+        elif args.check_remote:
+            remote_ok, remote_detail = remote_repo_summary(name_or_path)
+            status_line(remote_ok, "model available remotely", remote_detail)
+            if args.allow_download:
+                warn_line("model not found locally", f"{name_or_path}; run may download")
+            else:
+                status_line(False, "model available locally", name_or_path)
+                failures += 1
         elif args.allow_download:
             warn_line("model not found locally", f"{name_or_path}; run may download")
         else:
@@ -194,6 +243,9 @@ def main() -> int:
         file_name = "/".join(repo_file.split("/")[2:])
         adapter_hits = find_repo_cache(repo_id)
         if not adapter_hits:
+            if args.check_remote:
+                remote_ok, remote_detail = remote_repo_summary(repo_id, file_name=file_name)
+                status_line(remote_ok, f"{key} adapter file available remotely", remote_detail)
             if args.allow_download:
                 warn_line(f"{key} adapter repo not found locally", repo_file)
             else:
